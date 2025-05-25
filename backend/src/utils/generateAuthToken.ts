@@ -8,11 +8,10 @@ interface User {
   email: string;
 }
 
-/**
- * Generates a JSON Web Token (JWT) for the given user
- * @param user - The user object containing id, name, and email
- * @returns A signed JWT as a string
- */
+//  * Generates a JSON Web Token (JWT) for the given user
+//  * @param user - The user object containing id, name, and email
+//  * @returns A signed JWT as a string
+
 const generateAuthToken = (user: User): string => {
   // Retrieve the secret key from environment variables
   const jwtSecretKey = process.env.JWT_KEY;
