@@ -18,7 +18,7 @@ const registerSchema = z.object({
 type RegisterInput = z.infer<typeof registerSchema>;
 
 // 📩 Handle POST requests to the /register route
-router.post('/', async (req: Request, res: Response) => {
+router.post('/register', async (req: Request, res: Response) => {
   try {
     // ✅ Validate request body using Zod
     const parseResult = registerSchema.safeParse(req.body);
@@ -27,7 +27,8 @@ router.post('/', async (req: Request, res: Response) => {
     if (!parseResult.success) {
       const errorMessage =
         parseResult.error.errors[0]?.message || 'Invalid input';
-      return res.status(400).send(errorMessage);
+      res.status(400).send(errorMessage);
+      return;
     }
 
     // ✅ If validation passes, destructure the validated data
@@ -36,14 +37,16 @@ router.post('/', async (req: Request, res: Response) => {
     // 🔍 Check if a user with this email already exists in the database
     let user = await User.findOne({ email });
     if (user) {
-      return res.status(400).send('User already exists.');
+      res.status(400).send('User already exists.');
+      return;
     }
 
-    // If the user is new, we hash their password before saving
-    const salt = await bcrypt.genSalt(8); // Generate salt (used to make hashes stronger)
-    const hashedPassword = await bcrypt.hash(password, salt); // Hash the password
+    // If the user is new, we hash their password before saving to db
+    const salt = await bcrypt.genSalt(8);
+    const hashedPassword = await bcrypt.hash(password, salt);
 
     // Create a new user with the hashed password
+    // normally we would use req.body
     user = new User({
       name,
       email,
@@ -51,19 +54,18 @@ router.post('/', async (req: Request, res: Response) => {
     });
 
     // 💾 Save the user to the database
-    await user.save();
+    user = await user.save();
 
-    // 🔑 Generate a token (e.g., JWT) for authentication
-    const token = generateAuthToken(user);
+    // 🔑 Generate a token (JWT) for auth
+    const token = generateAuthToken(user.id);
 
-    // 📤 Send the token as the response
     res.send(token);
   } catch (err) {
-    // 🛠️ Handle any unexpected server errors
-    console.error('Registration error:', err);
+    // DO NOT directly return the error as it may contain
+    // sensitive user information in the payload.
+    // console.error('Registration error:', err);
     res.status(500).send('Server error.');
   }
 });
 
-// 📦 Export the router so it can be used in the main app
 export default router;
